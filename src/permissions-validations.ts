@@ -7,30 +7,81 @@ interface Condition {
 type Conditions = Condition[];
 type ConditionAlternatives = Conditions[];
 
-type Permission = object;
-
-interface AuthorizeResponse {
-    authorized: boolean,
-    conditionAlternatives?: ConditionAlternatives
+export interface Permission {
+  resource: string;
+  role: string;
+  scopes: string[] | string;
+  effect: "allow" | "deny";
+  conditions: Condition[];
 }
 
+interface AuthorizeResponse {
+  authorized: boolean;
+  conditionAlternatives?: ConditionAlternatives;
+}
 
 /**
- * 
+ *
  * Precondition: the scope is related to the resource.
- * 
+ *
  * @param granted_roles
  * @param resource
- * @param scope 
- * @param permissions 
- * @returns 
+ * @param scope
+ * @param permissions
+ * @returns
+ *
  */
+
 export const authorize = (
   granted_roles: string[],
   resource: string,
   scope: string,
   permissions: Permission[]
 ): AuthorizeResponse => {
+  const conditionAlternatives: ConditionAlternatives = [];
+
+  const matchingPermissions = permissions.filter((perm) => {
+    return (
+      granted_roles.includes(perm.role) &&
+      (perm.resource == "*" || perm.resource == resource) &&
+      (perm.scopes == "*" || perm.scopes.includes(scope))
+    );
+  });
+
+  const conditionPatterns : Condition[][] = permissions.filter((perm) => {
+    return (
+      granted_roles.includes(perm.role) &&
+      perm.resource == "?" &&
+      perm.scopes == "?"
+    );
+  }).map(perm => perm.conditions);
+
+  const matchPatterns = (condition: Condition) => {
+    if (condition.value == '?') {
+      for (const conditionPattern of conditionPatterns) {
+
+        const firstConditionOfPattern = conditionPattern[0];
+
+        if (condition.attribute == firstConditionOfPattern.attribute &&
+          condition.operator == firstConditionOfPattern.operator) {
+            return firstConditionOfPattern
+          }
+      }
+      throw new Error(`Invalid permission assignment: no comparison value for ${condition.attribute}`)
+    }
+    return condition;
+  };
+
+  matchingPermissions.forEach((perm) => {
+    if (perm.conditions.length) {
+      conditionAlternatives.push(perm.conditions.map(matchPatterns));
+    }
+  });
+
   return {
+    authorized: matchingPermissions.length != 0,
+    ...(conditionAlternatives.length && {
+      conditionAlternatives,
+    }),
   };
 };
