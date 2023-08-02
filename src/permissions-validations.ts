@@ -1,13 +1,5 @@
-interface Condition {
-  attribute: string;
-  operator: string;
-  value: string | object[];
-}
-
-type Conditions = Condition[];
-type ConditionAlternatives = Conditions[];
-
 export interface Permission {
+  id: number;
   resource: string;
   role: string;
   scopes: string[] | string;
@@ -18,6 +10,7 @@ export interface Permission {
 interface AuthorizeResponse {
   authorized: boolean;
   conditionAlternatives?: ConditionAlternatives;
+  matchingPermissions?: number[];
 }
 
 export const authorize = (
@@ -36,33 +29,44 @@ export const authorize = (
     );
   });
 
-  const conditionPatterns : Condition[][] = permissions.filter((perm) => {
-    return (
-      granted_roles.includes(perm.role) &&
-      perm.resource == "?" &&
-      perm.scopes == "?"
+  const conditionPatterns: Condition[][] = permissions
+    .filter((perm) => {
+      return (
+        granted_roles.includes(perm.role) &&
+        perm.resource == "?" &&
+        perm.scopes == "?"
+      );
+    })
+    .map((perm) =>
+      perm.conditions.map((c) => ({ ...c, matchingPermissions: [perm.id] }))
     );
-  }).map(perm => perm.conditions);
 
-  const matchPatterns = (condition: Condition) => {
-    if (condition.value == '?') {
-      for (const conditionPattern of conditionPatterns) {
+  const matchPatterns =
+    (permId: number) =>
+    (condition: Condition): Condition => {
+      if (condition.value == "?") {
+        for (const conditionPattern of conditionPatterns) {
+          assertPatternHasOnlyOneCondition(conditionPattern);
+          const firstConditionOfPattern = conditionPattern[0];
 
-        const firstConditionOfPattern = conditionPattern[0];
-
-        if (condition.attribute == firstConditionOfPattern.attribute &&
-          condition.operator == firstConditionOfPattern.operator) {
-            return firstConditionOfPattern
+          if (
+            condition.attribute == firstConditionOfPattern.attribute &&
+            condition.operator == firstConditionOfPattern.operator
+          ) {
+            firstConditionOfPattern.matchingPermissions!.push(permId)
+            return firstConditionOfPattern;
           }
+        }
+        throw new Error(
+          `Invalid permission assignment: no comparison value for ${condition.attribute}`
+        );
       }
-      throw new Error(`Invalid permission assignment: no comparison value for ${condition.attribute}`)
-    }
-    return condition;
-  };
+      return { ...condition, matchingPermissions: [permId] };
+    };
 
   matchingPermissions.forEach((perm) => {
     if (perm.conditions.length) {
-      conditionAlternatives.push(perm.conditions.map(matchPatterns));
+      conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
     }
   });
 
@@ -71,5 +75,14 @@ export const authorize = (
     ...(conditionAlternatives.length && {
       conditionAlternatives,
     }),
+    matchingPermissions: matchingPermissions.map((p) => p.id),
   };
+};
+
+const assertPatternHasOnlyOneCondition = (pattern: Conditions) => {
+  if (pattern.length > 1) {
+    throw new Error(
+      "Conditioning pattern permissions should have a single condition"
+    );
+  }
 };
