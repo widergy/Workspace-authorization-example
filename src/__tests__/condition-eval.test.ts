@@ -138,3 +138,43 @@ test('in operator', () => {
 
   expect(result).toBe(true);
 });
+
+test('not_in operator', () => {
+  const resourceInstance = {
+    companyName: 'MyCompanySRL',
+  };
+
+  const conditionAlternatives: ConditionAlternatives = [
+    [
+      {
+        attribute: 'companyName',
+        operator: 'not_in',
+        value: ['MyOtherCompany', 'MyCompanySRL'],
+      },
+    ],
+  ];
+
+  const result = evalConditions(resourceInstance, conditionAlternatives);
+
+  expect(result).toBe(false);
+});
+
+test('not_equals operator', () => {
+  const resourceInstance = {
+    companyName: 'MyOtherCompanySRL',
+  };
+
+  const conditionAlternatives: ConditionAlternatives = [
+    [
+      {
+        attribute: 'companyName',
+        operator: 'not_equals',
+        value: 'MyCompanySRL',
+      },
+    ],
+  ];
+
+  const result = evalConditions(resourceInstance, conditionAlternatives);
+
+  expect(result).toBe(true);
+});
