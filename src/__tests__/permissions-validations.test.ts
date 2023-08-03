@@ -259,7 +259,7 @@ test("Permission with conditions with matching pattern", () => {
         attribute: "companyName",
         operator: "equals",
         value: "Compañia SRL",
-        matchingPermissions: [11,10]
+        matchingPermissions: [11, 10],
       },
     ],
   ]);
@@ -442,4 +442,76 @@ test("Different roles grant alternative conditions", () => {
     ],
   ]);
   expect(result.matchingPermissions).toEqual([8, 9]);
+});
+
+test("Deny permissions", () => {
+  const permissions: Permission[] = [
+    {
+      id: 8,
+      role: "basic.viewer",
+      resource: "*",
+      scopes: ["view"],
+      effect: "allow",
+      conditions: [],
+    },
+    {
+      id: 9,
+      role: "basic.viewer",
+      resource: "urn:secret_report",
+      scopes: "*",
+      effect: "deny",
+      conditions: [],
+    },
+  ];
+
+  const result = authorize(
+    ["basic.viewer"],
+    "urn:secret_report",
+    "view",
+    permissions
+  );
+
+  expect(result.authorized).toBe(false);
+  expect(result.conditionAlternatives).toBeUndefined();
+  expect(result.matchingPermissions).toEqual([8, 9]);
+});
+
+test("Deny permissions take priority", () => {
+  const permissions: Permission[] = [
+    {
+      id: 8,
+      role: "basic.viewer",
+      resource: "*",
+      scopes: ["view"],
+      effect: "allow",
+      conditions: [],
+    },
+    {
+      id: 9,
+      role: "basic.viewer",
+      resource: "urn:secret_report",
+      scopes: "*",
+      effect: "deny",
+      conditions: [],
+    },
+    {
+      id: 10,
+      role: "secret.viewer",
+      resource: "urn:secret_report",
+      scopes: ["view"],
+      effect: "allow",
+      conditions: [],
+    },
+  ];
+
+  const result = authorize(
+    ["basic.viewer", "secret.viewer"],
+    "urn:secret_report",
+    "view",
+    permissions
+  );
+
+  expect(result.authorized).toBe(false);
+  expect(result.conditionAlternatives).toBeUndefined();
+  expect(result.matchingPermissions).toEqual([8, 9, 10]);
 });

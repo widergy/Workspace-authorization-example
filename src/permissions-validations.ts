@@ -53,7 +53,7 @@ export const authorize = (
             condition.attribute == firstConditionOfPattern.attribute &&
             condition.operator == firstConditionOfPattern.operator
           ) {
-            firstConditionOfPattern.matchingPermissions!.push(permId)
+            firstConditionOfPattern.matchingPermissions!.push(permId);
             return firstConditionOfPattern;
           }
         }
@@ -64,14 +64,20 @@ export const authorize = (
       return { ...condition, matchingPermissions: [permId] };
     };
 
-  matchingPermissions.forEach((perm) => {
-    if (perm.conditions.length) {
-      conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
-    }
-  });
+  const authorized =
+    matchingPermissions.length > 0 &&
+    matchingPermissions.every((perm) => {
+      if (perm.effect == "deny") {
+        return false;
+      }
+      if (perm.conditions.length) {
+        conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
+      }
+      return true;
+    });
 
   return {
-    authorized: matchingPermissions.length != 0,
+    authorized,
     ...(conditionAlternatives.length && {
       conditionAlternatives,
     }),
