@@ -1,16 +1,16 @@
-import { evalConditions } from "../condition-eval";
+import { evalConditions } from '../condition-eval';
 
-test("eval single alternative equal condition", () => {
+test('eval single alternative equal condition', () => {
   const resourceInstance = {
-    companyName: "MyCompanySRL",
+    companyName: 'MyCompanySRL',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
       },
     ],
   ];
@@ -22,15 +22,15 @@ test("eval single alternative equal condition", () => {
 
 test("eval single alternative equal condition, doesn't match", () => {
   const resourceInstance = {
-    companyName: "MyOtherCompanySRL",
+    companyName: 'MyOtherCompanySRL',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
       },
     ],
   ];
@@ -40,24 +40,24 @@ test("eval single alternative equal condition, doesn't match", () => {
   expect(result).toBe(false);
 });
 
-test("eval multiple alternatives equal condition", () => {
+test('eval multiple alternatives equal condition', () => {
   const resourceInstance = {
-    companyName: "MyOtherCompanySRL",
+    companyName: 'MyOtherCompanySRL',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
       },
     ],
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyOtherCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyOtherCompanySRL',
       },
     ],
   ];
@@ -67,23 +67,23 @@ test("eval multiple alternatives equal condition", () => {
   expect(result).toBe(true);
 });
 
-test("eval complex conditions, attribute missing", () => {
+test('eval complex conditions, attribute missing', () => {
   const resourceInstance = {
-    companyName: "MyCompanySRL",
-    zone: "South",
+    companyName: 'MyCompanySRL',
+    zone: 'South',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
       },
       {
-        attribute: "zone",
-        operator: "equals",
-        value: "North",
+        attribute: 'zone',
+        operator: 'equals',
+        value: 'North',
       },
     ],
   ];
@@ -93,23 +93,23 @@ test("eval complex conditions, attribute missing", () => {
   expect(result).toBe(false);
 });
 
-test("eval complex conditions, all attribute match", () => {
+test('eval complex conditions, all attribute match', () => {
   const resourceInstance = {
-    companyName: "MyCompanySRL",
-    zone: "North",
+    companyName: 'MyCompanySRL',
+    zone: 'North',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "equals",
-        value: "MyCompanySRL",
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
       },
       {
-        attribute: "zone",
-        operator: "equals",
-        value: "North",
+        attribute: 'zone',
+        operator: 'equals',
+        value: 'North',
       },
     ],
   ];
@@ -119,17 +119,17 @@ test("eval complex conditions, all attribute match", () => {
   expect(result).toBe(true);
 });
 
-test("in operator", () => {
+test('in operator', () => {
   const resourceInstance = {
-    companyName: "MyCompanySRL",
+    companyName: 'MyCompanySRL',
   };
 
   const conditionAlternatives: ConditionAlternatives = [
     [
       {
-        attribute: "companyName",
-        operator: "in",
-        value: ["MyOtherCompany", "MyCompanySRL"],
+        attribute: 'companyName',
+        operator: 'in',
+        value: ['MyOtherCompany', 'MyCompanySRL'],
       },
     ],
   ];
