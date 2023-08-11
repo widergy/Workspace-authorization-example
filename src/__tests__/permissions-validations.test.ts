@@ -20,7 +20,7 @@ test('Permission with one resource and any scopes without conditions, access gra
     permissions,
   );
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toBeUndefined();
   expect(result.matchingPermissions).toEqual([1]);
 });
@@ -63,7 +63,7 @@ test('Permission with any resource and a single scope and all scopes without con
 
   const result = authorize(['viewer'], 'urn:account', 'view', permissions);
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
@@ -104,7 +104,7 @@ test('Permission specific resource and scopes without conditions, access granted
     permissions,
   );
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
@@ -145,7 +145,7 @@ test('Permission with full access, granted', () => {
 
   const result = authorize(['admin'], 'urn:account', 'edit', permissions);
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
@@ -179,7 +179,7 @@ test('Permission with conditions', () => {
     permissions,
   );
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toEqual([
     [
       {
@@ -252,7 +252,7 @@ test('Permission with conditions with matching pattern', () => {
     permissions,
   );
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toEqual([
     [
       {
@@ -422,7 +422,7 @@ test('Different roles grant alternative conditions', () => {
     permissions,
   );
 
-  expect(result.authorized).toBeTruthy();
+  expect(result.authorized).toBe(true);
   expect(result.conditionAlternatives).toEqual([
     [
       {
@@ -515,3 +515,42 @@ test('Deny permissions take priority', () => {
   expect(result.conditionAlternatives).toBeUndefined();
   expect(result.matchingPermissions).toEqual([8, 9, 10]);
 });
+
+
+test('Test no conditions take priority over some condition', () => {
+  const permissions: Permission[] = [
+    {
+      id: 8,
+      role: 'admin',
+      resource: '*',
+      scopes: '*',
+      effect: 'allow',
+      conditions: [],
+    },
+    {
+      id: 9,
+      role: 'admin.smartfield',
+      resource: '*',
+      scopes: '*',
+      effect: 'allow',
+      conditions: [{
+        attribute: 'appId',
+        operator: 'equals',
+        value: '3123'
+      }],
+    },
+
+  ];
+
+  const result = authorize(
+    ['admin', 'admin.smartfield'],
+    'urn:account',
+    'edit',
+    permissions,
+  );
+
+  expect(result.authorized).toBe(true);
+  expect(result.conditionAlternatives).toBeUndefined();
+});
+
+

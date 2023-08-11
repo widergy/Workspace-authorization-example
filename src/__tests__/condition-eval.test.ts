@@ -178,3 +178,23 @@ test('not_equals operator', () => {
 
   expect(result).toBe(true);
 });
+
+
+test('empty condition', () => {
+  const resourceInstance = {
+    companyName: 'MyOtherCompanySRL',
+  };
+
+  const conditionAlternatives: ConditionAlternatives = [
+    [],
+    [{
+      "attribute": "companyName",
+      "operator": "equals",
+      "value": "otherValue"
+    }]
+  ];
+
+  const result = evalConditions(resourceInstance, conditionAlternatives);
+
+  expect(result).toBe(true);
+});

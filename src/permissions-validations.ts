@@ -19,6 +19,7 @@ export const authorize = (
   scope: string,
   permissions: Permission[],
 ): AuthorizeResponse => {
+
   const conditionAlternatives: ConditionAlternatives = [];
 
   const matchingPermissions = permissions.filter(perm => {
@@ -70,15 +71,16 @@ export const authorize = (
       if (perm.effect == 'deny') {
         return false;
       }
-      if (perm.conditions.length) {
-        conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
-      }
-      return true;
+      
+      conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
+      
+      return true
     });
 
+  const thereIsAnEmptyCondition = conditionAlternatives.some(e => e.length == 0);
   return {
     authorized,
-    ...(conditionAlternatives.length && {
+    ...(!thereIsAnEmptyCondition && matchingPermissions.length != 0 && {
       conditionAlternatives,
     }),
     matchingPermissions: matchingPermissions.map(p => p.id),
