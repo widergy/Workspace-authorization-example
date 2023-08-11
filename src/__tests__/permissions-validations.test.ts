@@ -44,7 +44,7 @@ test('Permission with one resource and any scopes without conditions 2, access d
     permissions,
   );
 
-  expect(result.authorized).toBeFalsy();
+  expect(result.authorized).toBe(false);
   expect(result.conditionAlternatives).toBeUndefined();
   expect(result.matchingPermissions).toEqual([]);
 });
@@ -81,7 +81,7 @@ test('Permission is for another role', () => {
 
   const result = authorize(['not.viewer'], 'urn:account', 'view', permissions);
 
-  expect(result.authorized).toBeFalsy();
+  expect(result.authorized).toBe(false);
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
@@ -127,7 +127,7 @@ test('Permission specific resource and scopes without conditions, access denied'
     permissions,
   );
 
-  expect(result.authorized).toBeFalsy();
+  expect(result.authorized).toBe(false);
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
