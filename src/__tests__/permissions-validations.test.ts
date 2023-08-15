@@ -516,7 +516,6 @@ test('Deny permissions take priority', () => {
   expect(result.matchingPermissions).toEqual([8, 9, 10]);
 });
 
-
 test('Test no conditions take priority over some condition', () => {
   const permissions: Permission[] = [
     {
@@ -533,13 +532,14 @@ test('Test no conditions take priority over some condition', () => {
       resource: '*',
       scopes: '*',
       effect: 'allow',
-      conditions: [{
-        attribute: 'appId',
-        operator: 'equals',
-        value: '3123'
-      }],
+      conditions: [
+        {
+          attribute: 'appId',
+          operator: 'equals',
+          value: '3123',
+        },
+      ],
     },
-
   ];
 
   const result = authorize(
@@ -553,4 +553,374 @@ test('Test no conditions take priority over some condition', () => {
   expect(result.conditionAlternatives).toBeUndefined();
 });
 
+test('User is assigned to two zones, throws error', () => {
+  const permissions: Permission[] = [
+    {
+      role: 'operator',
+      effect: 'allow',
+      resource: 'urn:task',
+      scopes: ['create'],
+      id: 1,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: '?',
+        },
+      ],
+    },
+    {
+      role: 'north',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: 'north',
+        },
+      ],
+    },
+    {
+      role: 'south',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: 'south',
+        },
+      ],
+    },
+  ];
 
+  expect(() => {
+    authorize(
+      ['operator', 'north', 'south'],
+      'urn:task',
+      'create',
+      permissions,
+    );
+  }).toThrow();
+});
+
+test('User is assigned to two zones and two companies, throws errors', () => {
+  const permissions: Permission[] = [
+    {
+      role: 'operator',
+      effect: 'allow',
+      resource: 'urn:task',
+      scopes: ['create'],
+      id: 1,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: '?',
+        },
+        {
+          attribute: 'company',
+          operator: 'equals',
+          value: '?',
+        },
+      ],
+    },
+    {
+      role: 'north',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: 'north',
+        },
+      ],
+    },
+    {
+      role: 'south',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'equals',
+          value: 'south',
+        },
+      ],
+    },
+    {
+      role: 'companyA',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'company',
+          operator: 'equals',
+          value: 'companyA',
+        },
+      ],
+    },
+    {
+      role: 'companyB',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'company',
+          operator: 'equals',
+          value: 'companyB',
+        },
+      ],
+    },
+  ];
+
+  expect(() =>
+    authorize(
+      ['operator', 'north', 'south', 'companyA', 'companyB'],
+      'urn:task',
+      'create',
+      permissions,
+    ),
+  ).toThrow();
+});
+
+test('In conditions ? with multiple possible values, values alternatives are sum Up', () => {
+  const permissions: Permission[] = [
+    {
+      role: 'operator',
+      effect: 'allow',
+      resource: 'urn:task',
+      scopes: ['create'],
+      id: 1,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'in',
+          value: '?',
+        },
+        {
+          attribute: 'company',
+          operator: 'in',
+          value: '?',
+        },
+      ],
+    },
+    {
+      role: 'north',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'in',
+          value: ['north'],
+        },
+      ],
+    },
+    {
+      role: 'south',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 3,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'in',
+          value: ['south'],
+        },
+      ],
+    },
+    {
+      role: 'companyA',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 4,
+      conditions: [
+        {
+          attribute: 'company',
+          operator: 'in',
+          value: ['companyA'],
+        },
+      ],
+    },
+    {
+      role: 'companyB',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 5,
+      conditions: [
+        {
+          attribute: 'company',
+          operator: 'in',
+          value: ['companyB'],
+        },
+      ],
+    },
+  ];
+
+  const result = authorize(
+    ['operator', 'north', 'south', 'companyA', 'companyB'],
+    'urn:task',
+    'create',
+    permissions,
+  );
+
+  expect(result.authorized).toBe(true);
+  expect(result.conditionAlternatives).toEqual([
+    [
+      {
+        attribute: 'zone',
+        operator: 'in',
+        value: ['north', 'south'],
+        matchingPermissions: [1, 2, 3],
+      },
+      {
+        attribute: 'company',
+        operator: 'in',
+        value: ['companyA', 'companyB'],
+        matchingPermissions: [1, 4, 5],
+      },
+    ],
+  ]);
+});
+
+test('User is assigned not to two zones, throws error', () => {
+  const permissions: Permission[] = [
+    {
+      role: 'operator',
+      effect: 'allow',
+      resource: 'urn:task',
+      scopes: ['create'],
+      id: 1,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_equals',
+          value: '?',
+        },
+      ],
+    },
+    {
+      role: 'north',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_equals',
+          value: 'north',
+        },
+      ],
+    },
+    {
+      role: 'south',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_equals',
+          value: 'south',
+        },
+      ],
+    },
+  ];
+
+  expect(() => {
+    authorize(
+      ['operator', 'north', 'south'],
+      'urn:task',
+      'create',
+      permissions,
+    );
+  }).toThrow();
+});
+
+test('User is assigned not to two zones, joins coinditions', () => {
+  const permissions: Permission[] = [
+    {
+      role: 'operator',
+      effect: 'allow',
+      resource: 'urn:task',
+      scopes: ['create'],
+      id: 1,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_in',
+          value: '?',
+        },
+      ],
+    },
+    {
+      role: 'north',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 2,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_in',
+          value: ['north'],
+        },
+      ],
+    },
+    {
+      role: 'south',
+      effect: 'allow',
+      resource: '?',
+      scopes: '?',
+      id: 3,
+      conditions: [
+        {
+          attribute: 'zone',
+          operator: 'not_in',
+          value: ['south'],
+        },
+      ],
+    },
+  ];
+
+  const result = authorize(
+    ['operator', 'north', 'south'],
+    'urn:task',
+    'create',
+    permissions,
+  );
+
+  expect(result.authorized).toBe(true);
+  expect(result.conditionAlternatives).toEqual([
+    [
+      {
+        attribute: 'zone',
+        operator: 'not_in',
+        value: ['north', 'south'],
+        matchingPermissions: [1, 2, 3],
+      },
+    ],
+  ]);
+});

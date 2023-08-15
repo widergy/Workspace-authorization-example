@@ -19,7 +19,6 @@ export const authorize = (
   scope: string,
   permissions: Permission[],
 ): AuthorizeResponse => {
-
   const conditionAlternatives: ConditionAlternatives = [];
 
   const matchingPermissions = permissions.filter(perm => {
@@ -30,7 +29,7 @@ export const authorize = (
     );
   });
 
-  const conditionPatterns: Condition[][] = permissions
+  const conditionPatterns: Condition[] = permissions
     .filter(perm => {
       return (
         granted_roles.includes(perm.role) &&
@@ -38,29 +37,56 @@ export const authorize = (
         perm.scopes == '?'
       );
     })
-    .map(perm =>
-      perm.conditions.map(c => ({ ...c, matchingPermissions: [perm.id] })),
-    );
+    .map(perm => {
+      assertPatternHasOnlyOneCondition(perm.conditions);
+      const conditionPattern = perm.conditions[0];
+
+      return { ...conditionPattern, matchingPermissions: [perm.id] };
+    });
 
   const matchPatterns =
     (permId: number) =>
     (condition: Condition): Condition => {
       if (condition.value == '?') {
-        for (const conditionPattern of conditionPatterns) {
-          assertPatternHasOnlyOneCondition(conditionPattern);
-          const firstConditionOfPattern = conditionPattern[0];
+        const matchingConditions = conditionPatterns.filter(pattern => {
+          return (
+            condition.attribute == pattern.attribute &&
+            condition.operator == pattern.operator
+          );
+        });
 
-          if (
-            condition.attribute == firstConditionOfPattern.attribute &&
-            condition.operator == firstConditionOfPattern.operator
-          ) {
-            firstConditionOfPattern.matchingPermissions!.push(permId);
-            return firstConditionOfPattern;
-          }
+        if (matchingConditions.length == 0) {
+          throw new Error(
+            `Invalid permission assignment: no comparison value for ${condition.attribute}`,
+          );
         }
-        throw new Error(
-          `Invalid permission assignment: no comparison value for ${condition.attribute}`,
-        );
+
+        if (
+          ['equals', 'not_equals'].includes(condition.operator) &&
+          matchingConditions.length > 1
+        ) {
+          throw new Error(
+            'Invalid permissions assignment: equals matches multiple values',
+          );
+        }
+
+        if (['in', 'not_in'].includes(condition.operator)) {
+          let newValue: string[] = [];
+          const newPermissions: number[] = [permId];
+          matchingConditions.forEach(cond => {
+            newValue = [...newValue, ...cond.value];
+            newPermissions.push(cond.matchingPermissions?.[0] || -1);
+          });
+
+          return {
+            ...matchingConditions[0],
+            value: newValue,
+            matchingPermissions: newPermissions,
+          };
+        }
+
+        matchingConditions[0].matchingPermissions?.push(permId);
+        return matchingConditions[0];
       }
       return { ...condition, matchingPermissions: [permId] };
     };
@@ -71,18 +97,21 @@ export const authorize = (
       if (perm.effect == 'deny') {
         return false;
       }
-      
+
       conditionAlternatives.push(perm.conditions.map(matchPatterns(perm.id)));
-      
-      return true
+
+      return true;
     });
 
-  const thereIsAnEmptyCondition = conditionAlternatives.some(e => e.length == 0);
+  const thereIsAnEmptyCondition = conditionAlternatives.some(
+    e => e.length == 0,
+  );
   return {
     authorized,
-    ...(!thereIsAnEmptyCondition && matchingPermissions.length != 0 && {
-      conditionAlternatives,
-    }),
+    ...(!thereIsAnEmptyCondition &&
+      matchingPermissions.length != 0 && {
+        conditionAlternatives,
+      }),
     matchingPermissions: matchingPermissions.map(p => p.id),
   };
 };
