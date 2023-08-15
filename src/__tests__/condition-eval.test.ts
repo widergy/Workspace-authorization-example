@@ -198,3 +198,41 @@ test('empty condition', () => {
 
   expect(result).toBe(true);
 });
+
+test('eval complex conditions, two clauses', () => {
+  const resourceInstance = {
+    companyName: 'companyA',
+    zone: 'South',
+  };
+
+  const conditionAlternatives: ConditionAlternatives = [
+    [
+      {
+        attribute: 'companyName',
+        operator: 'equals',
+        value: 'MyCompanySRL',
+      },
+      {
+        attribute: 'zone',
+        operator: 'equals',
+        value: 'North',
+      },
+    ],
+    [
+      {
+        attribute: 'companyName',
+        operator: 'in',
+        value: ['companyA', 'companyB'] ,
+      },
+      {
+        attribute: 'zone',
+        operator: 'equals',
+        value: 'South',
+      },
+    ],
+  ];
+
+  const result = evalConditions(resourceInstance, conditionAlternatives);
+
+  expect(result).toBe(true);
+});
